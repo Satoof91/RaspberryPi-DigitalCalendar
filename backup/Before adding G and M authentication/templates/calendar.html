@@ -1,0 +1,634 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Calendar View</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            background-color: #f0f4f8;
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: #2c3e50;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar h1 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .sidebar nav a {
+            color: white;
+            text-decoration: none;
+            margin: 10px 0;
+            padding: 10px 15px;
+            display: block;
+            font-size: 1.1em;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .sidebar nav a:hover, .sidebar nav a.active {
+            background-color: #34495e;
+        }
+
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .content header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .content header h2 {
+            margin: 0;
+            font-size: 1.5em;
+            color: #333;
+        }
+
+        .month-toggle {
+            display: flex;
+            align-items: left;
+        }
+
+        .view-toggle {
+            display: flex;
+            align-items: right;
+        }
+
+        .view-toggle button {
+            background-color: #007bff;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .view-toggle button:hover {
+            background-color: #0056b3;
+        }
+
+        .view-toggle button.active {
+            background-color: #0056b3;
+        }
+
+        .calendar {
+            display: grid;
+            gap: 5px;
+        }
+
+        .calendar.daily {
+            grid-template-columns: 1fr;
+        }
+
+        .calendar.weekly, .calendar.monthly {
+            grid-template-columns: repeat(7, 1fr);
+        }
+
+        .calendar .day, .calendar .day-header {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: #fff;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .calendar .day-header {
+            background-color: #f7f7f7;
+            cursor: default;
+            font-weight: bold;
+        }
+
+        .calendar .day h3 {
+            margin: 0;
+            padding: 5px 0;
+            font-size: 1.1em;
+            color: #333;
+        }
+
+        .calendar .task {
+            padding: 5px;
+            margin: 5px 0;
+            color: white;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .calendar .task.high {
+            background-color: #ff4c4c; /* Red for high priority */
+        }
+
+        .calendar .task.medium {
+            background-color: #ffc107; /* Amber for medium priority */
+        }
+
+        .calendar .task.low {
+            background-color: #4caf50; /* Green for low priority */
+        }
+
+        .calendar .day.expanded {
+            background-color: #e9f7ff;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .add-task-btn {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background-color: #007bff;
+            border: none;
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .add-task-btn:hover {
+            background-color: #0056b3;
+        }
+
+        #taskModal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 1000;
+        }
+
+        #taskModal.active {
+            display: block;
+        }
+
+        #taskModal input, #taskModal select {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 1em;
+        }
+
+        #taskModal button {
+            background-color: #007bff;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+
+        #taskModal button:hover {
+            background-color: #0056b3;
+        }
+
+        .footer {
+                width: 100%;
+                padding: 10px 0;
+                text-align: center;
+                background-color: #f8f9fa;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+            }
+
+            .home-button {
+                font-size: 24px;
+                background: none;
+                border: none;
+                cursor: pointer;
+                color: #007bff;
+            }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 200px;
+            }
+
+            .sidebar h1 {
+                font-size: 1.2em;
+            }
+
+            .sidebar nav a {
+                font-size: 1em;
+            }
+
+            .content header h2 {
+                font-size: 1.2em;
+            }
+
+            .view-toggle button {
+                font-size: 14px;
+                padding: 8px 16px;
+            }
+
+            .calendar .day h3 {
+                font-size: 1em;
+            }
+
+            .calendar .task {
+                font-size: 0.9em;
+            }
+
+            input[type="checkbox"] {
+                width: 20px;
+                height: 20px;
+                margin-right: 10px;
+            }
+
+        }
+    </style>
+</head>
+<header>
+    <div class="month-toggle">
+        <button onclick="prevPeriod()"> < </button>
+        <h2 id="calendar-title">May 2024</h2>
+        <button onclick="nextPeriod()"> > </button>
+    </div>
+    <div class="view-toggle">
+        <button id="dayView" onclick="changeView('daily')">Day</button>
+        <button id="weekView" onclick="changeView('weekly')">Week</button>
+        <button id="monthView" onclick="changeView('monthly')">Month</button>
+    </div>
+</header>
+<div class="calendar" id="calendar"></div>
+
+<div id="taskModal">
+    <h3>Add Task</h3>
+    <label for="taskName">Task Name:</label>
+    <input type="text" id="taskName">
+    <label for="taskPriority">Priority:</label>
+    <select id="taskPriority">
+        <option value="High">High</option>
+        <option value="Medium">Medium</option>
+        <option value="Low">Low</option>
+    </select>
+    <button onclick="addTask()">Add Task</button>
+    <button id="closeModalButton">Close</button>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let currentView = 'monthly';
+        let tasks = [];
+        let selectedDate = null;
+        let today = new Date(); // Initialize today
+
+        function fetchTasks() {
+            fetch('/tasks')
+                .then(response => response.json())
+                .then(data => {
+                    tasks = data;
+                    renderCalendar(tasks, currentView);
+                });
+        }
+
+        window.changeView = function(view) {
+            currentView = view;
+            const activeButton = document.querySelector('.view-toggle button.active');
+            if (activeButton) {
+                activeButton.classList.remove('active');
+            }
+            const viewButton = document.getElementById(`${view}View`);
+            if (viewButton) {
+                viewButton.classList.add('active');
+            }
+            renderCalendar(tasks, view);
+        };
+
+        window.prevPeriod = function() {
+            if (currentView === 'weekly') {
+                today.setDate(today.getDate() - 7);
+            } else if (currentView === 'monthly') {
+                today.setMonth(today.getMonth() - 1);
+            } else {
+                today.setDate(today.getDate() - 1);
+            }
+            renderCalendar(tasks, currentView);
+        };
+
+        window.nextPeriod = function() {
+            if (currentView === 'weekly') {
+                today.setDate(today.getDate() + 7);
+            } else if (currentView === 'monthly') {
+                today.setMonth(today.getMonth() + 1);
+            } else {
+                today.setDate(today.getDate() + 1);
+            }
+            renderCalendar(tasks, currentView);
+        };
+
+        function renderCalendar(tasks, view) {
+            const calendar = document.getElementById('calendar');
+            const title = document.getElementById('calendar-title');
+            calendar.className = `calendar ${view}`; // Set class for calendar based on view
+            calendar.innerHTML = '';
+
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            title.innerText = `${monthNames[today.getMonth()]} ${today.getFullYear()}`;
+
+            if (view === 'daily') {
+                renderDailyView(tasks, today);
+            } else if (view === 'weekly') {
+                renderWeeklyView(tasks, today);
+            } else {
+                renderMonthlyView(tasks, today);
+            }
+        }
+
+        function renderDailyView(tasks, date) {
+            const calendar = document.getElementById('calendar');
+            const dailyTasks = tasks.filter(task => new Date(task.date).toDateString() === date.toDateString());
+
+            const dayContainer = document.createElement('div');
+            dayContainer.className = 'day daily expanded';
+
+            const dayHeader = document.createElement('h3');
+            dayHeader.textContent = `${date.toDateString()}`;
+            dayContainer.appendChild(dayHeader);
+
+            const tasksContainer = document.createElement('div');
+            tasksContainer.className = 'tasks';
+
+            dailyTasks.forEach(task => {
+                const taskItem = document.createElement('div');
+                taskItem.className = `task ${task.priority.toLowerCase()}`;
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = task.is_completed;
+                checkbox.addEventListener('change', function() {
+                    taskItem.style.textDecoration = this.checked ? 'line-through' : 'none';
+                    task.is_completed = this.checked;
+                    toggleCompletion(task.id, this.checked);
+                });
+
+                taskItem.appendChild(checkbox);
+
+                const taskText = document.createTextNode(`${task.name} (${task.priority})`);
+                taskItem.appendChild(taskText);
+
+                tasksContainer.appendChild(taskItem);
+            });
+
+            dayContainer.appendChild(tasksContainer);
+
+            const addButton = document.createElement('button');
+            addButton.className = 'add-task-btn';
+            addButton.innerHTML = '+';
+            addButton.onclick = function() {
+                selectedDate = date;
+                openModal();
+            };
+            dayContainer.appendChild(addButton);
+
+            calendar.appendChild(dayContainer);
+        }
+
+        function renderWeeklyView(tasks, today) {
+            const calendar = document.getElementById('calendar');
+            const weekDays = getWeekDays(today);
+
+            weekDays.forEach(date => {
+                const dailyTasks = tasks.filter(task => new Date(task.date).toDateString() === date.toDateString());
+
+                const dayContainer = document.createElement('div');
+                dayContainer.className = 'day weekly';
+                dayContainer.innerHTML = `<h3>${date.toDateString()}</h3>`;
+
+                dailyTasks.forEach(task => {
+                    const taskItem = document.createElement('div');
+                    taskItem.className = `task ${task.priority.toLowerCase()}`;
+
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.checked = task.is_completed;
+                    checkbox.addEventListener('change', function() {
+                        taskItem.style.textDecoration = this.checked ? 'line-through' : 'none';
+                        task.is_completed = this.checked;
+                        toggleCompletion(task.id, this.checked);
+                    });
+
+                    taskItem.appendChild(checkbox);
+
+                    const taskText = document.createTextNode(`${task.name} (${task.priority})`);
+                    taskItem.appendChild(taskText);
+
+                    dayContainer.appendChild(taskItem);
+                });
+
+                const addButton = document.createElement('button');
+                addButton.className = 'add-task-btn';
+                addButton.innerHTML = '+';
+                addButton.onclick = function() {
+                    selectedDate = date;
+                    openModal();
+                };
+                dayContainer.appendChild(addButton);
+
+                dayContainer.addEventListener('click', () => expandDay(dayContainer));
+
+                if (date.toDateString() === today.toDateString()) {
+                    dayContainer.classList.add('expanded');
+                }
+
+                calendar.appendChild(dayContainer);
+            });
+        }
+
+        function renderMonthlyView(tasks, today) {
+            const calendar = document.getElementById('calendar');
+
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+            // Render week headers
+            const weekHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            weekHeaders.forEach(day => {
+                const header = document.createElement('div');
+                header.className = 'day-header';
+                header.innerText = day;
+                calendar.appendChild(header);
+            });
+
+            // Fill initial empty days
+            for (let i = 0; i < firstDay.getDay(); i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'day monthly';
+                calendar.appendChild(emptyCell);
+            }
+
+            for (let date = new Date(firstDay); date <= lastDay; date.setDate(date.getDate() + 1)) {
+                (function(date) {
+                    const dailyTasks = tasks.filter(task => new Date(task.date).toDateString() === date.toDateString());
+
+                    const dayContainer = document.createElement('div');
+                    dayContainer.className = 'day monthly';
+                    dayContainer.innerHTML = `<h3>${date.getDate()}</h3>`;
+                    dailyTasks.forEach(task => {
+                        const taskItem = document.createElement('div');
+                        taskItem.className = `task ${task.priority.toLowerCase()}`;
+
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.checked = task.is_completed;
+                        checkbox.addEventListener('change', function() {
+                            taskItem.style.textDecoration = this.checked ? 'line-through' : 'none';
+                            task.is_completed = this.checked;
+                            toggleCompletion(task.id, this.checked);
+                        });
+
+                        taskItem.appendChild(checkbox);
+
+                        const taskText = document.createTextNode(`${task.name} (${task.priority})`);
+                        taskItem.appendChild(taskText);
+
+                        dayContainer.appendChild(taskItem);
+                    });
+
+                    const addButton = document.createElement('button');
+                    addButton.className = 'add-task-btn';
+                    addButton.innerHTML = '+';
+                    addButton.addEventListener('click', function() {
+                        selectedDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+                        openModal();
+                    });
+                    dayContainer.appendChild(addButton);
+
+                    dayContainer.addEventListener('click', () => expandDay(dayContainer));
+
+                    if (date.toDateString() === today.toDateString()) {
+                        dayContainer.classList.add('expanded');
+                    }
+
+                    calendar.appendChild(dayContainer);
+                })(new Date(date));
+            }
+        }
+
+        function expandDay(dayContainer) {
+            const days = document.querySelectorAll('.day');
+            days.forEach(day => day.classList.remove('expanded'));
+            dayContainer.classList.add('expanded');
+        }
+
+        function getWeekDays(date) {
+            const startOfWeek = new Date(date);
+            startOfWeek.setDate(date.getDate() - date.getDay());
+            const weekDays = [];
+            for (let i = 0; i < 7; i++) {
+                const day = new Date(startOfWeek);
+                day.setDate(startOfWeek.getDate() + i);
+                weekDays.push(day);
+            }
+            return weekDays;
+        }
+
+        function openModal() {
+            const modal = document.getElementById('taskModal');
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('taskModal');
+            modal.classList.remove('active');
+            document.getElementById('taskName').value = '';
+            document.getElementById('taskPriority').value = 'High';
+        }
+
+        window.addTask = function() {
+            const taskName = document.getElementById('taskName').value;
+            const taskPriority = document.getElementById('taskPriority').value;
+            if (taskName && selectedDate) {
+                tasks.push({ id: tasks.length + 1, name: taskName, date: selectedDate.toISOString().split('T')[0], priority: taskPriority });
+                // Post the task to the server
+                fetch('/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        taskName: taskName,
+                        taskDate: selectedDate.toISOString().split('T')[0],
+                        taskPriority: taskPriority,
+                        taskReminder: false
+                    })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        fetchTasks();
+                        closeModal();
+                    } else {
+                        console.error('Failed to add task');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            }
+        };
+
+        window.toggleCompletion = function(taskId, isCompleted) {
+            fetch(`/toggle/${taskId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ completed: isCompleted })
+            })
+            .then(response => {
+                if (response.ok) {
+                    fetchTasks();
+                } else {
+                    console.error('Error toggling task completion');
+                }
+            });
+        };
+
+        document.getElementById('closeModalButton').addEventListener('click', closeModal);
+
+        fetchTasks();
+    });
+</script>
+{% endblock %}

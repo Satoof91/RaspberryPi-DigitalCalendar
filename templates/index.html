@@ -1,0 +1,685 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google-signin-client_id" content="33125742498-hvgm88r6mncmhtsv88s4b0qd50op0put.apps.googleusercontent.com">
+    <title>Digital Watch and To-Do List</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: 'Arial', sans-serif;
+            background: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .app-container {
+            background: #ffffff;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            width: 90%;
+            max-width: 80%;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .digital-watch {
+            flex: 3;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .digital-watch h1 {
+            margin: 0;
+            color: #007bff;
+            font-size: 4em;
+        }
+
+        .digital-watch p {
+            margin-top: 10px;
+            font-size: 1.5em;
+            color: #666;
+        }
+
+        .todo-list {
+            flex: 2;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .todo-list ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .todo-list li {
+            background: #fff;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .add-button {
+            background: #007bff;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            font-size: 2em;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
+            margin-top: 20px;
+        }
+
+        .add-button:hover {
+            background: #0056b3;
+        }
+
+        .settings-icon {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            cursor: pointer;
+            font-size: 24px;
+            color: #007bff;
+        }
+
+        .settings-icon:hover {
+            color: #0056b3;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #fff;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 400px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .close, .closeConfig {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            cursor: pointer;
+        }
+
+        .close:hover, .closeConfig:hover {
+            color: #000;
+        }
+
+        .go-to-calendar {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #007bff;
+            color: white;
+        }
+
+        .go-to-calendar:hover {
+            background: #0056b3;
+        }
+
+        .footer {
+                width: 100%;
+                padding: 10px 0;
+                text-align: center;
+                background-color: #f8f9fa;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+            }
+
+            .home-button {
+                font-size: 24px;
+                background: none;
+                border: none;
+                cursor: pointer;
+                color: #007bff;
+            }
+
+        .reminder {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #f8d7da; /* light red */
+            color: #721c24; /* dark red */
+            padding: 20px;
+            margin-bottom: 10px;
+            width: 300px;
+            text-align: center;
+            border-radius: 5px;
+            box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1); /* shadow effect */
+            border: 1px solid #f5c6cb; /* border color */
+        }
+
+        .reminder button {
+            margin-left: 10px;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .reminder button:hover {
+            background: #f5c6cb; /* change background on hover */
+        }
+
+        input[type="text"], input[type="date"], select {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button[type="submit"] {
+            background: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button[type="submit"]:hover {
+            background: #0056b3;
+        }
+
+        #login-button {
+            background: #007bff;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: auto;
+            position: fixed;
+            top: 15px;
+            right: 70px; /* Adjust this value as needed */
+        }
+
+        #logout-button {
+            background: #007bff;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: auto;
+            position: fixed;
+            top: 15px;
+            right: 70px; /* Adjust this value as needed */
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 30%;
+            text-align: center;
+        }
+
+        .microsoft-login {
+            background: #2F2F2F;
+            align-items: center;
+        }
+
+        .google-login {
+            background: #4285F4;
+            align-items: center;
+        }
+
+        .login-option {
+            display: flex;
+            align-items: center;
+            background: #007bff;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .login-logo {
+            width: 24px;
+            height: 24px;
+            margin-right: 10px;
+        }
+
+        .logout-logo {
+            width: 24px;
+            height: 24px;
+            margin-right: 10px;
+        }
+
+        .user-email {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            font-size: 14px;
+            color: #007bff;
+            background: #e0f7ff;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+    </style>
+    <script src="https://apis.google.com/js/platform.js" async defer></script>
+</head>
+
+<div class="app-container">
+    <div class="digital-watch">
+        <h1 id="time">12:00:00 AM</h1>
+        <p id="date">Monday, 5/6/2024</p>
+    </div>
+    <div class="todo-list">
+        <ul id="taskList"></ul>
+        <button class="add-button" onclick="toggleModal('taskModal')">+</button>
+    </div>
+</div>
+
+<div class="settings-icon" onclick="toggleModal('configModal')">
+    <i class="fas fa-cog"></i>
+</div>
+
+<!-- Display logged-in user email if available -->
+{% if user_email %}
+<div id="user-email" style="position: fixed; top: 15px; left: 70px;">Logged in as: {{ user_email }}</div>
+<button id="logout-button" onclick="window.location.href='/logout'">Logout</button>
+{% else %}
+<button id="login-button" onclick="toggleModal('login-popup')">Log in</button>
+{% endif %}
+
+<!--<button id="login-button">Log in</button>-->
+
+<div id="login-popup" class="modal">
+    <div class="modal-content">
+        <!-- Close button in the top right corner -->
+        <span class="close" onclick="toggleModal('login-popup')" style="float:right; cursor:pointer;">&times;</span>
+        <h2>Log in to your account</h2>
+        <p>Choose a login option:</p>
+        <button class="login-option microsoft-login" onclick="window.location.href='/login/microsoft'">
+            <img src="https://img.icons8.com/color/48/000000/microsoft.png" class="login-logo">
+            Log in with Microsoft
+        </button>
+        <button class="login-option google-login" onclick="window.location.href='/login/google'">
+            <img src="https://img.icons8.com/color/48/000000/google-logo.png" class="login-logo">
+            Log in with Google
+        </button>
+    </div>
+</div>
+
+<div id="configModal" class="modal">
+    <div class="modal-content">
+        <span class="closeConfig" onclick="toggleModal('configModal')">&times;</span>
+        <h2>Configure Week Start</h2>
+        <form id="weekStartForm">
+            <label>
+                <input type="radio" name="weekStart" value="Sunday" checked> Sunday
+            </label>
+            <label>
+                <input type="radio" name="weekStart" value="Monday"> Monday
+            </label>
+            <button type="submit">Save Changes</button>
+        </form>
+    </div>
+</div>
+
+<div id="taskModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="toggleModal('taskModal')">&times;</span>
+        <form id="taskForm">
+            <label for="taskName">Task Name:</label>
+            <input type="text" id="taskName" name="taskName" required>
+            <label for="taskDate">Due Date:</label>
+            <input type="date" id="taskDate" name="taskDate" required>
+            <label for="taskPriority">Priority:</label>
+            <select id="taskPriority" name="taskPriority">
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+            </select>
+            <label for="taskReminder">Set a reminder:</label>
+            <input type="checkbox" id="taskReminder" name="taskReminder" onclick="toggleReminderFields()">
+            <div id="reminderFields" style="display: none;">
+                <label for="reminderDate">Reminder Date:</label>
+                <input type="date" id="reminderDate" name="reminderDate">
+                <label for="reminderTime">Reminder Time:</label>
+                <input type="time" id="reminderTime" name="reminderTime">
+            </div>
+            <button type="submit">Add Task</button>
+        </form>
+    </div>
+</div>
+
+<!-- Include the Google Platform Library -->
+<script src="https://apis.google.com/js/platform.js?onload=renderButton" async defer></script>
+
+<script>
+    function onSuccess(googleUser) {
+      console.log('Logged in as: ' + googleUser.getBasicProfile().getName());
+    }
+    function onFailure(error) {
+      console.log(error);
+    }
+    function renderButton() {
+      gapi.signin2.render('my-signin2', {
+        'scope': 'profile email',
+        'width': 240,
+        'height': 50,
+        'longtitle': true,
+        'theme': 'dark',
+        'onsuccess': onSuccess,
+        'onfailure': onFailure
+      });
+    }
+
+    function toggleModal(modalId) {
+    const modal = document.getElementById(modalId);
+    modal.style.display = (modal.style.display === 'block' ? 'none' : 'block');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.close').forEach(function(element) {
+        element.onclick = function() {
+            const modal = this.closest('.modal');
+            modal.style.display = 'none';
+        }
+    });
+});
+
+    document.getElementById('taskDate').valueAsDate = new Date();
+    document.getElementById('reminderDate').valueAsDate = new Date();
+
+    document.addEventListener('DOMContentLoaded', () => {
+        updateTime();
+        setInterval(updateTime, 1000);
+
+        document.getElementById('taskForm').onsubmit = (event) => {
+            event.preventDefault();
+            addTask();
+        };
+
+        document.getElementById('weekStartForm').onsubmit = (event) => {
+            event.preventDefault();
+            saveWeekStart();
+        };
+
+        fetchTasks();
+    });
+
+    document.getElementById('login-button').addEventListener('click', function() {
+        document.getElementById('login-popup').style.display = 'block';
+    });
+
+    document.querySelectorAll('.login-option').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const provider = this.classList.contains('microsoft-login') ? 'microsoft' : 'google';
+            window.location.href = `http://localhost:8080/login/${provider}`;
+        });
+    });
+
+    function handleGoogleCredentialResponse(response) {
+        console.log("ID: " + response.credential);
+    }
+
+    function updateTime() {
+        const now = new Date();
+        document.getElementById('time').innerText = now.toLocaleTimeString();
+        document.getElementById('date').innerText = now.toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'numeric',
+            day: 'numeric',
+            year: 'numeric'
+        });
+    }
+
+    function toggleModal(modalId) {
+        const modal = document.getElementById(modalId);
+        modal.style.display = (modal.style.display === 'block' ? 'none' : 'block');
+    }
+
+    function addTask() {
+        const name = document.getElementById('taskName').value;
+        const date = document.getElementById('taskDate').value;
+        const priority = document.getElementById('taskPriority').value;
+        const is_reminder = document.getElementById('taskReminder').checked;
+        const reminder_date = document.getElementById('reminderDate').value;
+        const reminder_time = document.getElementById('reminderTime').value;
+        const reminder_datetime = is_reminder ? `${reminder_date} ${reminder_time}` : null;
+
+        const taskData = {
+            taskName: name,
+            taskDate: date,
+            taskPriority: priority,
+            taskReminder: is_reminder,
+            reminderDate: reminder_date,
+            reminderTime: reminder_time
+        };
+
+        fetch('/add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(taskData)
+        })
+        .then(response => {
+            if (response.ok) {
+                fetchTasks(); // Refresh the task list
+                toggleModal('taskModal');
+                document.getElementById('taskForm').reset();
+                toggleReminderFields();
+            } else {
+                console.error('Error adding task');
+            }
+        });
+    }
+
+    function fetchTasks() {
+        fetch('/tasks')
+        .then(response => response.json())
+        .then(data => {
+            const taskList = document.getElementById('taskList');
+            taskList.innerHTML = '';
+            data.forEach(task => {
+                const taskItem = document.createElement('li');
+                taskItem.innerHTML = `
+                    <input type="checkbox" class="task-checkbox" ${task.is_completed ? 'checked' : ''} onchange="toggleCompletion(${task.id}, this)">
+                    <span class="priority-circle ${task.priority.toLowerCase()}"></span>
+                    ${task.name} - ${task.date}
+                    <button class="task-action" onclick="deleteTask(${task.id})">Delete</button>
+                `;
+                taskList.appendChild(taskItem);
+            });
+        });
+    }
+
+    function toggleCompletion(taskId, checkbox) {
+        fetch(`/toggle/${taskId}`)
+        .then(response => {
+            if (response.ok) {
+                fetchTasks();
+            } else {
+                console.error('Error toggling task');
+            }
+        });
+    }
+
+    function deleteTask(taskId) {
+        fetch(`/delete/${taskId}`)
+        .then(response => {
+            if (response.ok) {
+                fetchTasks();
+            } else {
+                console.error('Error deleting task');
+            }
+        });
+    }
+
+    function saveWeekStart() {
+        const weekStart = document.querySelector('input[name="weekStart"]:checked').value;
+        console.log(`Week starts on: ${weekStart}`);
+        toggleModal('configModal');
+    }
+
+    function toggleReminderFields() {
+        const reminderFields = document.getElementById('reminderFields');
+        const reminderCheckbox = document.getElementById('taskReminder');
+        if (reminderCheckbox.checked) {
+            reminderFields.style.display = 'block';
+        } else {
+            reminderFields.style.display = 'none';
+        }
+    }
+
+    document.getElementById('login-button').addEventListener('click', function() {
+        document.getElementById('login-popup').style.display = 'block';
+    });
+
+    document.querySelectorAll('.login-option').forEach(function(button) {
+        button.addEventListener('click', function() {
+            document.getElementById('login-popup').style.display = 'none';
+            // Code for logging in with Microsoft or Google goes here
+        });
+    });
+
+    function showReminder(task) {
+        const reminder = document.createElement('div');
+        reminder.className = 'reminder';
+        reminder.textContent = `Reminder: ${task.name}`;
+
+        const completeButton = document.createElement('button');
+        completeButton.textContent = 'Mark Complete';
+        completeButton.addEventListener('click', function() {
+            markComplete(this, task.name);
+        });
+        reminder.appendChild(completeButton);
+
+        document.body.appendChild(reminder);
+    }
+
+    function dismissReminder(button) {
+        const reminder = button.parentNode;
+        reminder.parentNode.removeChild(reminder);
+    }
+
+    function markComplete(button, taskName) {
+        // Remove the task from the local storage
+        const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        const taskIndex = tasks.findIndex(task => task.name === taskName);
+        if (taskIndex !== -1) {
+            tasks.splice(taskIndex, 1);
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        }
+
+        // Remove the reminder from the page
+        dismissReminder(button);
+    }
+
+    function checkForReminders() {
+        const now = new Date();
+        const nowDate = now.toISOString().split('T')[0];
+        const nowTime = now.toTimeString().split(' ')[0].substring(0, 5);
+
+        const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+
+        tasks.forEach(task => {
+            if (task.reminder && task.reminderDate === nowDate && task.reminderTime === nowTime) {
+                showReminder(task);
+            }
+        });
+    }
+
+    // Initialize the Google Sign-In client
+    function initGoogleSignIn() {
+        gapi.load('auth2', function() {
+        gapi.auth2.init({
+            client_id: '33125742498-hvgm88r6mncmhtsv88s4b0qd50op0put.apps.googleusercontent.com',
+        });
+        });
+    }
+
+    // Attach the sign-in function to the Google login button
+    function attachSignIn(element) {
+        const auth2 = gapi.auth2.getAuthInstance();
+        auth2.attachClickHandler(element, {},
+            function(googleUser) {
+            // Handle the successful sign-in here
+            const profile = googleUser.getBasicProfile();
+            console.log('Token || ' + googleUser.getAuthResponse().id_token);
+            console.log('ID: ' + profile.getId());
+            // Use the token or ID to authenticate with your backend
+            }, function(error) {
+            alert(JSON.stringify(error, undefined, 2));
+            });
+    }
+
+    // Call initGoogleSignIn when the window loads
+    window.onload = function() {
+        initGoogleSignIn();
+    };
+
+    // Check if user_email is provided
+    const userEmail = "{{ user_email }}";
+    if (userEmail) {
+        document.getElementById('user-email').textContent = `Logged in as: ${userEmail}`;
+    }
+
+    setInterval(checkForReminders, 1000); // Check for reminders every minute
+</script>
+{% endblock %}
