@@ -5,6 +5,7 @@ from datetime import datetime
 import os
 import secrets
 import requests
+import logging
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Ensure you set a secret key for session management
@@ -30,7 +31,7 @@ oauth.register(
     jwks_uri='https://www.googleapis.com/oauth2/v3/certs',
     userinfo_endpoint='https://www.googleapis.com/oauth2/v3/userinfo',
     redirect_uri='http://localhost:8080/auth/google/callback',
-    client_kwargs={'scope': 'openid profile email'}
+     client_kwargs={'scope': 'openid profile email https://www.googleapis.com/auth/tasks'}
 )
 
 # Microsoft OAuth configuration
@@ -90,6 +91,18 @@ def toggle(id):
     db.session.commit()
     return jsonify({'status': 'success'})
 
+@app.route('/update/<int:id>', methods=['POST'])
+def update(id):
+    task = Task.query.get_or_404(id)
+    data = request.get_json()
+    task.name = data.get('taskName')
+    task.date = data.get('taskDate')
+    task.priority = data.get('taskPriority')
+    task.is_reminder = data.get('taskReminder')
+    task.reminder_datetime = data.get('reminderDate') + ' ' + data.get('reminderTime') if task.is_reminder else None
+    db.session.commit()
+    return jsonify({'status': 'success'})
+
 @app.route('/tasks', methods=['GET'])
 def get_tasks():
     tasks = Task.query.all()
@@ -117,24 +130,19 @@ def login_google():
     redirect_uri = url_for('auth_google', _external=True)
     return oauth.google.authorize_redirect(redirect_uri, nonce=nonce)
 
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+
 @app.route('/auth/google/callback')
 def auth_google():
     token = oauth.google.authorize_access_token()
     nonce = session.pop('nonce', None)
     user_info = oauth.google.parse_id_token(token, nonce)
     session['user_email'] = user_info['email']
-    return redirect(url_for('index'))
-
-@app.route('/login/microsoft')
-def login_microsoft():
-    redirect_uri = url_for('auth_microsoft', _external=True)
-    return oauth.microsoft.authorize_redirect(redirect_uri)
-
-@app.route('/auth/microsoft/callback')
-def auth_microsoft():
-    token = oauth.microsoft.authorize_access_token()
-    user_info = oauth.microsoft.parse_id_token(token)
-    session['user_email'] = user_info
+    session['google_token'] = token  # Store Google token in session
+    logging.debug(f"Google user info: {user_info}")
+    logging.debug(f"Stored Google token in session: {session.get('google_token')}")
+    logging.debug(f"Stored user email in session: {session.get('user_email')}")
     return redirect(url_for('index'))
 
 @app.route('/sync-tasks')
@@ -144,51 +152,88 @@ def sync_tasks():
     microsoft_token = session.get('microsoft_token')
     tasks = []
 
+    logging.debug(f"Retrieved user email: {user_email}")
+    logging.debug(f"Retrieved Google token: {google_token}")
+    logging.debug(f"Retrieved Microsoft token: {microsoft_token}")
+
     if google_token:
         # Fetch tasks from Google
         headers = {'Authorization': f"Bearer {google_token['access_token']}"}
         response = requests.get('https://tasks.googleapis.com/tasks/v1/lists/@default/tasks', headers=headers)
+        logging.debug(f"Google response status: {response.status_code}")
+        logging.debug(f"Google response content: {response.text}")
         if response.status_code == 200:
             google_tasks = response.json().get('items', [])
+            logging.debug(f"Google tasks: {google_tasks}")
             for gtask in google_tasks:
+                task_name = gtask.get('title')
+                task_date = gtask.get('due', '').split('T')[0]
                 task = {
-                    'name': gtask.get('title'),
-                    'date': gtask.get('due', '').split('T')[0],
+                    'name': task_name,
+                    'date': task_date,
                     'priority': 'Low',  # Default priority
                     'is_reminder': False,
                     'reminder_datetime': None,
                     'is_completed': gtask.get('status') == 'completed',
                 }
                 tasks.append(task)
+                # Check if task already exists
+                existing_task = Task.query.filter_by(name=task_name, date=task_date).first()
+                if not existing_task:
+                    # Save to local database
+                    db_task = Task(
+                        name=task['name'],
+                        date=task['date'],
+                        priority=task['priority'],
+                        is_reminder=task['is_reminder'],
+                        reminder_datetime=task['reminder_datetime'],
+                        is_completed=task['is_completed']
+                    )
+                    db.session.add(db_task)
+            db.session.commit()
+        else:
+            logging.error(f"Failed to fetch Google tasks: {response.text}")
 
     if microsoft_token:
         # Fetch tasks from Microsoft
         headers = {'Authorization': f"Bearer {microsoft_token['access_token']}"}
         response = requests.get('https://graph.microsoft.com/v1.0/me/tasks', headers=headers)
+        logging.debug(f"Microsoft response status: {response.status_code}")
+        logging.debug(f"Microsoft response content: {response.text}")
         if response.status_code == 200:
             microsoft_tasks = response.json().get('value', [])
+            logging.debug(f"Microsoft tasks: {microsoft_tasks}")
             for mtask in microsoft_tasks:
+                task_name = mtask.get('title')
+                task_date = mtask.get('dueDateTime', {}).get('dateTime', '').split('T')[0]
                 task = {
-                    'name': mtask.get('title'),
-                    'date': mtask.get('dueDateTime', {}).get('dateTime', '').split('T')[0],
+                    'name': task_name,
+                    'date': task_date,
                     'priority': 'Low',  # Default priority
                     'is_reminder': False,
                     'reminder_datetime': None,
                     'is_completed': mtask.get('status') == 'completed',
                 }
                 tasks.append(task)
+                # Check if task already exists
+                existing_task = Task.query.filter_by(name=task_name, date=task_date).first()
+                if not existing_task:
+                    # Save to local database
+                    db_task = Task(
+                        name=task['name'],
+                        date=task['date'],
+                        priority=task['priority'],
+                        is_reminder=task['is_reminder'],
+                        reminder_datetime=task['reminder_datetime'],
+                        is_completed=task['is_completed']
+                    )
+                    db.session.add(db_task)
+            db.session.commit()
+        else:
+            logging.error(f"Failed to fetch Microsoft tasks: {response.text}")
 
-    # Add tasks to the local database
-    for task in tasks:
-        if task['name'] and task['date']:
-            new_task = Task(name=task['name'], date=task['date'], priority=task['priority'],
-                            is_reminder=task['is_reminder'], reminder_datetime=task['reminder_datetime'],
-                            is_completed=task['is_completed'])
-            db.session.add(new_task)
-    db.session.commit()
-
-    return jsonify({'status': 'success'})
-
+    logging.debug(f"Tasks to be returned: {tasks}")
+    return jsonify({'status': 'success', 'tasks': tasks})
 
 @app.route('/logout')
 def logout():

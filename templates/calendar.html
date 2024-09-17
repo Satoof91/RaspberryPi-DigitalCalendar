@@ -640,6 +640,26 @@
                 });
         };
 
+        window.updateTask = function(taskId, updatedTask) {
+            fetch(`/tasks/${taskId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updatedTask)
+            })
+            .then(response => {
+                if (response.ok) {
+                    fetchTasks(); // Refresh tasks after updating
+                } else {
+                    console.error('Error updating task');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        };
+
         document.getElementById('closeModalButton').addEventListener('click', closeModal);
 
         fetchTasks();
